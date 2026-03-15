@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Semantic Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c0c0f;
+      --bg-elevated: #12121a;
+      --surface: #18181f;
+      --surface-hover: #1e1e26;
+      --border: #2a2a35;
+      --text: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #6b6b7b;
+      --accent: #8b7cf8;
+      --accent-hover: #a396fa;
+      --accent-muted: rgba(139, 124, 248, 0.15);
+      --success: #4ade80;
+      --success-muted: rgba(74, 222, 128, 0.12);
+      --error-bg: rgba(248, 113, 113, 0.1);
+      --error-border: rgba(248, 113, 113, 0.35);
+      --error-text: #fca5a5;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+      --transition: 0.2s ease;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-muted), transparent);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+      border-radius: var(--radius-sm);
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.03em;
+    }
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .search-section {
+      margin-bottom: 1.75rem;
+    }
+    .search-wrap {
+      display: flex;
+      gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      box-shadow: var(--shadow);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .search-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-muted);
+    }
+    .search-wrap input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      font: inherit;
+      font-size: 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text);
+    }
+    .search-wrap input::placeholder { color: var(--text-muted); }
+    .search-wrap input:focus { outline: none; }
+    .search-wrap button {
+      padding: 0.875rem 1.5rem;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--transition), transform 0.1s ease;
+    }
+    .search-wrap button:hover { background: var(--accent-hover); }
+    .search-wrap button:active { transform: scale(0.98); }
+    .search-wrap button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .hint {
+      margin: -0.5rem 0 1.25rem 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+    }
+    .meta .latency {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      background: var(--success-muted);
+      color: var(--success);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 999px;
+    }
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(139, 124, 248, 0.2);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .card .rank {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-muted);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    .card .title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--accent);
+      margin: 0;
+      word-break: break-word;
+    }
+    .card .score {
+      flex-shrink: 0;
+      padding: 0.2rem 0.5rem;
+      background: var(--surface-hover);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      border-radius: 4px;
+    }
+    .card .passage {
+      font-size: 0.9375rem;
+      color: var(--text);
+      line-height: 1.65;
+      margin: 0;
+    }
+    .error {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      color: var(--error-text);
+      font-size: 0.9rem;
+    }
+    .empty {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" aria-hidden="true">◇</div>
+      <h1>Semantic Search</h1>
+      <p class="subtitle">Search by meaning — e.g. “symptoms of heart disease” also finds chest pain, cardiovascular risk.</p>
+    </header>
+    <section class="search-section">
+      <div class="search-wrap">
+        <input type="text" id="query" placeholder="Ask anything…" autofocus aria-label="Search query">
+        <button type="button" id="btn" aria-label="Search">Search</button>
+      </div>
+    </section>
+    <p class="hint" id="hint">First search may take 2–3 seconds.</p>
+    <div id="meta" class="meta" hidden></div>
+    <div id="results" class="results"></div>
+    <footer class="footer" id="status">Checking…</footer>
+  </div>
+  <script>
+    const queryEl = document.getElementById('query');
+    const btn = document.getElementById('btn');
+    const metaEl = document.getElementById('meta');
+    const resultsEl = document.getElementById('results');
+    const statusEl = document.getElementById('status');
+    const hintEl = document.getElementById('hint');
+    const SEARCH_TIMEOUT_MS = 60000;
+
+    async function health() {
+      try {
+        const r = await fetch('/health');
+        const d = await r.json();
+        statusEl.textContent = d.status === 'ok'
+          ? 'Indexed ' + (d.passages_indexed || 0).toLocaleString() + ' passages.'
+          : 'API not ready.';
+      } catch (_) {
+        statusEl.textContent = 'Cannot reach server. Is the app running? (python app.py)';
+      }
+    }
+    health();
+
+    function showLoading() {
+      resultsEl.innerHTML = '<div class="loading"><div class="spinner"></div><span>Searching… (may take a few seconds)</span></div>';
+    }
+
+    async function search() {
+      const q = (queryEl.value || '').trim();
+      if (!q) return;
+      btn.disabled = true;
+      metaEl.hidden = true;
+      if (hintEl) hintEl.style.visibility = 'hidden';
+      showLoading();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(function () { controller.abort(); }, SEARCH_TIMEOUT_MS);
+      try {
+        const r = await fetch('/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, top_k: 10 }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        let d;
+        try {
+          d = await r.json();
+        } catch (_) {
+          d = { error: r.status + ' ' + (r.statusText || 'Server error') };
+        }
+        if (!r.ok) {
+          resultsEl.innerHTML = '<div class="error">' + escapeHtml(d.error || r.statusText) + '</div>';
+          return;
+        }
+        metaEl.hidden = false;
+        metaEl.innerHTML = 'Query: \x22' + escapeHtml(d.query) + '\x22 \u00B7 <span class="latency">' + d.latency_ms + ' ms</span>';
+        if (!d.results || !d.results.length) {
+          resultsEl.innerHTML = '<p class="empty">No results found.</p>';
+          return;
+        }
+        resultsEl.innerHTML = d.results.map(function (x, i) {
+          return '<article class="card">' +
+            '<div class="card-header">' +
+              '<span class="rank">' + (i + 1) + '</span>' +
+              '<div class="title">' + escapeHtml(x.title) + '</div>' +
+              '<span class="score">' + x.score + '</span>' +
+            '</div>' +
+            '<p class="passage">' + escapeHtml(x.passage) + '</p>' +
+          '</article>';
+        }).join('');
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          resultsEl.innerHTML = '<div class="error">Request timed out. The server may be slow or unreachable. Try again.</div>';
+        } else {
+          resultsEl.innerHTML = '<div class="error">' + escapeHtml(e.message) + '</div>';
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        btn.disabled = false;
+        if (hintEl) hintEl.style.visibility = '';
+      }
+    }
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    btn.addEventListener('click', search);
+    queryEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') search(); });
+  </script>
+</body>
+</html>
