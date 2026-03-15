@@ -1,3 +1,4 @@
+import os
 import time
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -67,7 +68,8 @@ def search():
 
 def main():
     load_indexes()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ RUN python src/data_loader.py
 RUN python src/embedder.py
 RUN python src/indexer.py
 
-EXPOSE 5000
+EXPOSE 7860
+ENV PORT=7860
 
 CMD ["python", "app.py"]

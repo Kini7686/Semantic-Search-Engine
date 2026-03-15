@@ -59,7 +59,31 @@ docker build -t semantic-search .
 docker run -p 5000:5000 semantic-search
 ```
 
-**Note:** For Docker, run the pipeline (data_loader → embedder → indexer) before building, or add a multi-stage build/entrypoint that builds indexes on first run. The provided Dockerfile assumes `data/` and `indexes/` are already populated when building the image.
+The Dockerfile runs the full pipeline (data_loader → embedder → indexer) during build, so the first build can take ~10–15 minutes.
+
+## Host on Hugging Face Spaces (free)
+
+1. **Push your code to GitHub** (e.g. `https://github.com/YourUsername/Semantic-Search-Engine`).
+
+2. **Create a Space** at [huggingface.co/new-space](https://huggingface.co/new-space):
+   - **Name:** e.g. `semantic-search`
+   - **License:** pick one (e.g. MIT)
+   - **Select:** **Docker** (not Gradio/Streamlit)
+   - Create the Space.
+
+3. **Connect the Space to your repo:**
+   - In the Space, open the **Settings** (gear) tab.
+   - Under **Repository**, use **“Clone from a repo”** or **“Add a Dockerfile”**.
+   - If you use **“Clone from a repo”**: paste your GitHub repo URL. The Space will use the **Dockerfile** in the root.
+   - Alternatively, in the Space’s **Files** tab you can upload your project (or drag the Dockerfile and paste its content). The Space needs at least a **Dockerfile** in the repo root.
+
+4. **Build and run:**
+   - The Space will run `docker build` using your Dockerfile (installs deps, runs data_loader → embedder → indexer, then starts the app).
+   - **First build can take 15–30 minutes** (embedding ~18K passages on CPU). You can watch logs in the Space’s **Logs** tab.
+   - When it’s ready, your app will be at:  
+     `https://huggingface.co/spaces/YourUsername/semantic-search`
+
+5. **Use the app:** Open the Space URL in a browser; use the search box. The app listens on port **7860** on Spaces (handled by the Dockerfile `ENV PORT=7860`).
 
 ## API
 
