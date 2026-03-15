@@ -1,12 +1,7 @@
-"""
-Evaluation: 50 query-answer pairs, Recall@5, MRR@10.
-Compare BM25-only vs Semantic-only vs Hybrid; save evaluation_results.json.
-"""
 import json
 import sys
 from pathlib import Path
 
-# Run from project root so src.retriever is importable
 BASE = Path(__file__).resolve().parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
@@ -15,7 +10,6 @@ from src.retriever import load_indexes, semantic_search_results, bm25_search_res
 
 OUTPUT_PATH = BASE / "evaluation_results.json"
 
-# 50 test query / expected-passage-keyword pairs (keyword used to identify correct passage in top results)
 TEST_QUERIES = [
     ("what causes climate change", "climate"),
     ("symptoms of heart disease", "heart"),
@@ -75,7 +69,6 @@ def passage_contains_keyword(passage_text: str, keyword: str) -> bool:
 
 
 def recall_at_k(results: list[dict], keyword: str, k: int = 5) -> bool:
-    """True if any of top-k results contains keyword."""
     for r in results[:k]:
         if passage_contains_keyword(r["passage"], keyword):
             return True
@@ -83,7 +76,6 @@ def recall_at_k(results: list[dict], keyword: str, k: int = 5) -> bool:
 
 
 def mrr_at_k(results: list[dict], keyword: str, k: int = 10) -> float:
-    """Reciprocal rank of first result containing keyword; 0 if none in top-k."""
     for r in results[:k]:
         if passage_contains_keyword(r["passage"], keyword):
             return 1.0 / r["rank"]
@@ -112,7 +104,6 @@ def run_evaluation():
     metrics_semantic = compute_metrics(results_semantic)
     metrics_hybrid = compute_metrics(results_hybrid)
 
-    # Print comparison table
     print("\n--- Evaluation: BM25 vs Semantic vs Hybrid ---\n")
     print(f"{'Method':<12}  {'Recall@5':>10}  {'MRR@10':>10}")
     print("-" * 36)

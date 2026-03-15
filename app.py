@@ -1,6 +1,3 @@
-"""
-Flask REST API and web UI for semantic search. Loads indexes once at startup.
-"""
 import time
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -11,19 +8,16 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 
 @app.errorhandler(500)
 def handle_500(e):
-    """Ensure 500 responses are JSON so the frontend can show the error."""
     return jsonify({"error": getattr(e, "description", None) or str(e) or "Internal server error"}), 500
 
 
 @app.route("/")
 def index():
-    """Serve the search website."""
     return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    """Return status and number of indexed passages."""
     try:
         n = get_passages_count()
     except Exception:
@@ -33,10 +27,6 @@ def health():
 
 @app.route("/search", methods=["POST"])
 def search():
-    """
-    Body: { "query": "...", "top_k": 10 }.
-    Returns: { "query", "results": [ { "rank", "passage", "title", "score" }, ... ], "latency_ms" }.
-    """
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 400
 

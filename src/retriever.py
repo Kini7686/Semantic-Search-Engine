@@ -1,6 +1,3 @@
-"""
-Load FAISS + BM25 indexes and passages; expose semantic, BM25, and hybrid search.
-"""
 import json
 import pickle
 from pathlib import Path
@@ -21,16 +18,10 @@ BM25_PATH = INDEX_DIR / "bm25.pkl"
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-# Hybrid weights
 SEMANTIC_WEIGHT = 0.6
 BM25_WEIGHT = 0.4
-
-# Reranker: how many candidates to fetch before reranking (top-k after rerank is from hybrid_search k)
 RERANK_CANDIDATES = 30
-# Max passage length (chars) to send to reranker to avoid token limit errors
 RERANK_MAX_PASSAGE_CHARS = 2000
-
-# Singleton state
 _passages: list[dict] | None = None
 _faiss_index: faiss.IndexFlatIP | None = None
 _bm25: BM25Okapi | None = None
@@ -43,7 +34,6 @@ def tokenize_for_bm25(text: str) -> list[str]:
 
 
 def load_indexes() -> None:
-    """Load FAISS index, BM25 index, and passages from disk. Call once at startup."""
     global _passages, _faiss_index, _bm25, _model
 
     with open(PASSAGES_PATH, "r", encoding="utf-8") as f:
@@ -57,7 +47,6 @@ def load_indexes() -> None:
 
 
 def embed_query(query: str) -> np.ndarray:
-    """Embed a single query string; returns L2-normalized vector (1, dim)."""
     if _model is None:
         load_indexes()
     vec = _model.encode([query], normalize_embeddings=True)
@@ -65,10 +54,6 @@ def embed_query(query: str) -> np.ndarray:
 
 
 def semantic_search(query: str, k: int = 20) -> list[tuple[int, float]]:
-    """
-    FAISS top-k nearest neighbors by cosine similarity.
-    Returns list of (passage_index, score) where score is inner product (cosine for normalized).
-    """
     if _faiss_index is None or _passages is None:
         load_indexes()
     q = embed_query(query)
@@ -81,9 +66,6 @@ def semantic_search(query: str, k: int = 20) -> list[tuple[int, float]]:
 
 
 def bm25_search(query: str, k: int = 20) -> list[tuple[int, float]]:
-    """
-    BM25 top-k. Returns list of (passage_index, bm25_score).
-    """
     if _bm25 is None or _passages is None:
         load_indexes()
     tokenized = tokenize_for_bm25(query)
@@ -93,7 +75,6 @@ def bm25_search(query: str, k: int = 20) -> list[tuple[int, float]]:
 
 
 def _normalize_scores(scores: list[float]) -> list[float]:
-    """Min-max normalize to [0, 1]."""
     if not scores:
         return []
     lo, hi = min(scores), max(scores)
@@ -104,7 +85,6 @@ def _normalize_scores(scores: list[float]) -> list[float]:
 
 
 def _load_reranker() -> CrossEncoder:
-    """Load cross-encoder reranker lazily (first time reranking is used)."""
     global _reranker
     if _reranker is None:
         _reranker = CrossEncoder(RERANKER_MODEL_NAME)
@@ -112,7 +92,6 @@ def _load_reranker() -> CrossEncoder:
 
 
 def semantic_search_results(query: str, k: int = 10) -> list[dict]:
-    """Like hybrid_search format: list of {rank, passage, title, score} for semantic only."""
     if _passages is None:
         load_indexes()
     pairs = semantic_search(query, k=k)
@@ -123,7 +102,6 @@ def semantic_search_results(query: str, k: int = 10) -> list[dict]:
 
 
 def bm25_search_results(query: str, k: int = 10) -> list[dict]:
-    """Like hybrid_search format: list of {rank, passage, title, score} for BM25 only."""
     if _passages is None:
         load_indexes()
     pairs = bm25_search(query, k=k)
@@ -134,7 +112,6 @@ def bm25_search_results(query: str, k: int = 10) -> list[dict]:
 
 
 def _hybrid_candidates(query: str, candidate_k: int) -> list[tuple[int, float]]:
-    """Get top candidate_k passages by hybrid (semantic + BM25) score. Returns [(idx, score), ...]."""
     sem_pairs = semantic_search(query, k=20)
     bm25_pairs = bm25_search(query, k=20)
     sem_scores = _normalize_scores([s for _, s in sem_pairs])
@@ -155,10 +132,6 @@ def _hybrid_candidates(query: str, candidate_k: int) -> list[tuple[int, float]]:
 
 
 def hybrid_search(query: str, k: int = 10, use_reranker: bool = True) -> list[dict]:
-    """
-    Combine semantic (0.6) and BM25 (0.4) to get candidates; optionally rerank with a
-    cross-encoder and return top-k with passage text, title, and score.
-    """
     if _passages is None:
         load_indexes()
 
@@ -179,15 +152,12 @@ def hybrid_search(query: str, k: int = 10, use_reranker: bool = True) -> list[di
             })
         return results
 
-    # Rerank: score each (query, passage) with cross-encoder, then take top-k
     def _truncate(t: str) -> str:
         return t[:RERANK_MAX_PASSAGE_CHARS] if len(t) > RERANK_MAX_PASSAGE_CHARS else t
     pairs = [(query, _truncate(_passages[idx]["text"])) for idx, _ in top]
     reranker = _load_reranker()
     raw_scores = reranker.predict(pairs)
-    # predict() can return scalar for single pair; ensure list for zip
     reranker_scores = np.atleast_1d(raw_scores).tolist()
-    # Sort by reranker score descending; keep idx via enumerate
     indexed = list(zip(top, reranker_scores))
     indexed.sort(key=lambda x: x[1], reverse=True)
     top_reranked = indexed[:k]
@@ -195,7 +165,7 @@ def hybrid_search(query: str, k: int = 10, use_reranker: bool = True) -> list[di
     r_norm = _normalize_scores(r_scores)
     results = []
     for rank, (entry, norm_score) in enumerate(zip(top_reranked, r_norm), 1):
-        idx = entry[0][0]  # entry is ((idx, hybrid_score), reranker_score)
+        idx = entry[0][0]
         p = _passages[idx]
         results.append({
             "rank": rank,

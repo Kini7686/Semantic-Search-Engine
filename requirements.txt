@@ -1,22 +1,7 @@
-# Semantic Search Engine MVP
-# Python 3.10
-
-# Embeddings
 sentence-transformers>=2.2.0
-
-# Vector index
 faiss-cpu>=1.7.4
-
-# Sparse retrieval
 rank-bm25>=0.2.2
-
-# Web API
 flask>=3.0.0
-
-# Data
 datasets>=2.14.0
 pandas>=2.0.0
 numpy>=1.24.0
-
-# Tokenization for chunking (optional, we use simple word split in data_loader)
-# No extra tokenizer required for 256-word chunks

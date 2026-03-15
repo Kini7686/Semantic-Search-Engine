@@ -1,8 +1,3 @@
-"""
-Generate dense embeddings for all passages using all-MiniLM-L6-v2.
-Batch size 64, L2 normalize for cosine similarity.
-Output: indexes/embeddings.npy
-"""
 import time
 from pathlib import Path
 
@@ -43,7 +38,6 @@ def main():
     )
     elapsed = time.perf_counter() - t0
 
-    # Ensure float32 for FAISS
     embeddings = np.ascontiguousarray(embeddings.astype(np.float32))
     np.save(OUTPUT_PATH, embeddings)
 

@@ -1,7 +1,3 @@
-"""
-Load Wikipedia Simple English, clean text, chunk into overlapping passages.
-Output: data/passages.json
-"""
 import re
 import json
 from pathlib import Path
@@ -9,7 +5,6 @@ from pathlib import Path
 from datasets import load_dataset
 
 
-# Chunk config
 PASSAGE_TOKENS = 256
 OVERLAP_TOKENS = 50
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -17,29 +12,20 @@ OUTPUT_PATH = DATA_DIR / "passages.json"
 
 
 def clean_text(text: str) -> str:
-    """Remove HTML tags, special characters, normalize whitespace."""
     if not text or not isinstance(text, str):
         return ""
-    # Remove HTML tags
     text = re.sub(r"<[^>]+>", " ", text)
-    # Replace common special chars with space
     text = re.sub(r"[\r\n\t]+", " ", text)
     text = re.sub(r"[^\w\s.,;:!?'\"-]", " ", text)
-    # Collapse whitespace
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
 def tokenize_words(text: str) -> list[str]:
-    """Simple word tokenization (split on whitespace). Used for chunking."""
     return text.split()
 
 
 def chunk_document(text: str, title: str, doc_id: str, passage_start_id: int) -> list[dict]:
-    """
-    Split document into overlapping passages of 256 tokens with 50-token overlap.
-    Returns list of {"id", "text", "title"} dicts.
-    """
     tokens = tokenize_words(text)
     if not tokens:
         return []
@@ -67,7 +53,6 @@ def chunk_document(text: str, title: str, doc_id: str, passage_start_id: int) ->
 
 
 def load_wikipedia(split: str = "train[:5000]") -> list[dict]:
-    """Load Wikipedia Simple English from HuggingFace. Returns list of {title, text}."""
     for name, config in [
         ("wikimedia/wikipedia", "20220301.simple"),
         ("wikipedia", "20220301.simple"),
